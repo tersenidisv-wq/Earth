@@ -30,8 +30,9 @@ const globeRef = useRef<GlobeMethods | undefined>(undefined);
   <header className="top"><div className="brand"><span className="logo">🌐</span><div><h1>Our Earth</h1><p>Entdecke unsere Welt – interaktiv und in 3D</p></div></div><div className="status"><i/> {loading?"Länderdaten laden…":`${countries.length} Länder verfügbar`}</div></header>
   <section className="stage">
    <div className="globeWrap"><Globe ref={globeRef} width={typeof window!=="undefined"?window.innerWidth:1200} height={typeof window!=="undefined"?window.innerHeight-110:700}
-    globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg" bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-    backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png" polygonsData={[]} pointsData={points}
+    globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
+backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png" polygonsData={[]} pointsData={points}
     pointLat="lat" pointLng="lng" pointAltitude={0.012} pointRadius={0.12} pointColor={()=>"#62c8ff"}
     pointLabel="name" atmosphereColor="#5aaeff" atmosphereAltitude={0.18}
     onGlobeReady={()=>{
