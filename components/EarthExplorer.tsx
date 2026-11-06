@@ -28,8 +28,13 @@ type Country = {
   };
 };
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat("de-DE").format(n);
+const fmt = (n: number | null | undefined) => {
+  if (typeof n !== "number" || !Number.isFinite(n)) {
+    return "Keine Angabe";
+  }
+
+  return new Intl.NumberFormat("de-DE").format(n);
+};
 
 export default function EarthExplorer() {
   const [countries, setCountries] = useState<Country[]>([]);
@@ -316,7 +321,9 @@ export default function EarthExplorer() {
 
               <div className="detail">
                 <label>Bevölkerung</label>
-                <strong>{fmt(selected.population)}</strong>
+                <strong>
+  {fmt(selected.population)}
+</strong>
               </div>
 
               <div className="detail">
