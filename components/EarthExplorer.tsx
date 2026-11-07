@@ -16,7 +16,7 @@ type Country = {
   };
   cca3: string;
   capital?: string[];
-  population: number;
+  population: number | null;
   currencies?: Record<string, { name: string; symbol?: string }>;
   languages?: Record<string, string>;
   region: string;
@@ -64,7 +64,12 @@ export default function EarthExplorer() {
           throw new Error("Länderdaten konnten nicht geladen werden.");
         }
 
-        const data: Country[] = await response.json();
+        const rawData = await response.json();
+
+const data: Country[] = rawData.map((c: any) => ({
+  ...c,
+  population: Number(c.population ?? 0),
+}));
 
         const validCountries = data.filter(
           (c) =>
