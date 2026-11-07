@@ -29,6 +29,7 @@ type Country = {
   };
 };
 
+// Einwohnerzahlen formatieren
 const fmt = (n: number | null | undefined) => {
   if (typeof n !== "number" || !Number.isFinite(n)) {
     return "Keine Angabe";
@@ -37,7 +38,7 @@ const fmt = (n: number | null | undefined) => {
   return new Intl.NumberFormat("de-DE").format(n);
 };
 
-// Deutsche Ländernamen erzeugen
+// Deutsche Ländernamen
 const getGermanName = (country: Country) => {
   try {
     const names = new Intl.DisplayNames(["de"], {
@@ -60,7 +61,7 @@ export default function EarthExplorer() {
 
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
 
-  // Länder laden
+  // Länder und Bevölkerungsdaten laden
   useEffect(() => {
     const controller = new AbortController();
 
@@ -93,7 +94,7 @@ export default function EarthExplorer() {
 
         const populationJson = await populationResponse.json();
 
-        // Neueste verfügbare Bevölkerungszahl je Land ermitteln
+        // Neueste verfügbare Einwohnerzahl je Land
         const populationMap = new Map<
           string,
           { value: number; year: number }
@@ -123,7 +124,7 @@ export default function EarthExplorer() {
           }
         }
 
-        // Beide Datensätze zusammenführen
+        // Länder und Einwohnerzahlen zusammenführen
         const data: Country[] = rawCountries.map((c: any) => ({
           ...c,
           population: populationMap.get(c.cca3)?.value ?? null,
@@ -134,6 +135,7 @@ export default function EarthExplorer() {
             c.name?.common &&
             c.name?.official &&
             c.cca3 &&
+            c.cca2 &&
             Array.isArray(c.latlng) &&
             c.latlng.length === 2
         );
@@ -173,7 +175,7 @@ export default function EarthExplorer() {
     }
   }, [auto]);
 
-  // Länder suchen: Deutsch und Englisch
+  // Länder suchen
   const filtered = useMemo(
     () =>
       countries.filter((c) => {
@@ -191,7 +193,7 @@ export default function EarthExplorer() {
   // Land auswählen
   const pick = (c: Country) => {
     setSelected(c);
-    setQuery(getGermanName(c));
+    setQuery(c.name.common);
 
     globeRef.current?.pointOfView(
       {
@@ -209,7 +211,7 @@ export default function EarthExplorer() {
       countries.map((c) => ({
         lat: c.latlng[0],
         lng: c.latlng[1],
-        name: getGermanName(c),
+        name: c.name.common,
         cca3: c.cca3,
       })),
     [countries]
@@ -353,7 +355,7 @@ export default function EarthExplorer() {
                   key={c.cca3}
                   onClick={() => pick(c)}
                 >
-                  {getGermanName(c)}
+                  {c.name.common}
                   <small>{c.region}</small>
                 </button>
               ))}
@@ -364,16 +366,19 @@ export default function EarthExplorer() {
             </div>
           )}
 
-         <img
-  src={`https://flagcdn.com/w160/${selected.cca2.toLowerCase()}.png`}
-  alt={`Flagge ${selected.name.common}`}
-  width={80}
-  height={55}
-  style={{
-    objectFit: "contain",
-    borderRadius: "6px",
-  }}
-/>
+          {selected ? (
+            <div className="country">
+              <div className="countryHead">
+                <img
+                  src={`https://flagcdn.com/w160/${selected.cca2.toLowerCase()}.png`}
+                  alt={`Flagge ${selected.name.common}`}
+                  width={80}
+                  height={55}
+                  style={{
+                    objectFit: "contain",
+                    borderRadius: "6px",
+                  }}
+                />
 
                 <div>
                   <h3>{getGermanName(selected)}</h3>
