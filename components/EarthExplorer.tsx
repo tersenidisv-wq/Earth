@@ -68,7 +68,12 @@ export default function EarthExplorer() {
 
 const data: Country[] = rawData.map((c: any) => ({
   ...c,
-  population: Number(c.population ?? 0),
+  population:
+    typeof c.population === "number"
+      ? c.population
+      : typeof c.population === "string" && c.population.trim() !== ""
+        ? Number(c.population)
+        : null,
 }));
 
         const validCountries = data.filter(
