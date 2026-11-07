@@ -36,6 +36,19 @@ const fmt = (n: number | null | undefined) => {
   return new Intl.NumberFormat("de-DE").format(n);
 };
 
+// Deutsche Ländernamen erzeugen
+const getGermanName = (country: Country) => {
+  try {
+    const names = new Intl.DisplayNames(["de"], {
+      type: "region",
+    });
+
+    return names.of(country.cca3) || country.name.common;
+  } catch {
+    return country.name.common;
+  }
+};
+
 export default function EarthExplorer() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [selected, setSelected] = useState<Country | null>(null);
@@ -55,26 +68,65 @@ export default function EarthExplorer() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
+        // Länderinformationen laden
+        const countriesResponse = await fetch(
           "https://raw.githubusercontent.com/mledoze/countries/master/countries.json",
           { signal: controller.signal }
         );
 
-        if (!response.ok) {
+        if (!countriesResponse.ok) {
           throw new Error("Länderdaten konnten nicht geladen werden.");
         }
 
-        const rawData = await response.json();
+        const rawCountries = await countriesResponse.json();
 
-const data: Country[] = rawData.map((c: any) => ({
-  ...c,
-  population:
-    typeof c.population === "number"
-      ? c.population
-      : typeof c.population === "string" && c.population.trim() !== ""
-        ? Number(c.population)
-        : null,
-}));
+        // Bevölkerungsdaten der Weltbank laden
+        const populationResponse = await fetch(
+          "https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=20000",
+          { signal: controller.signal }
+        );
+
+        if (!populationResponse.ok) {
+          throw new Error("Bevölkerungsdaten konnten nicht geladen werden.");
+        }
+
+        const populationJson = await populationResponse.json();
+
+        // Neueste verfügbare Bevölkerungszahl je Land ermitteln
+        const populationMap = new Map<
+          string,
+          { value: number; year: number }
+        >();
+
+        if (Array.isArray(populationJson[1])) {
+          for (const entry of populationJson[1]) {
+            const code = entry.countryiso3code;
+            const value = entry.value;
+            const year = Number(entry.date);
+
+            if (
+              code &&
+              typeof value === "number" &&
+              Number.isFinite(value) &&
+              Number.isFinite(year)
+            ) {
+              const existing = populationMap.get(code);
+
+              if (!existing || year > existing.year) {
+                populationMap.set(code, {
+                  value,
+                  year,
+                });
+              }
+            }
+          }
+        }
+
+        // Beide Datensätze zusammenführen
+        const data: Country[] = rawCountries.map((c: any) => ({
+          ...c,
+          population: populationMap.get(c.cca3)?.value ?? null,
+        }));
 
         const validCountries = data.filter(
           (c) =>
@@ -120,21 +172,25 @@ const data: Country[] = rawData.map((c: any) => ({
     }
   }, [auto]);
 
-  // Länder suchen
+  // Länder suchen: Deutsch und Englisch
   const filtered = useMemo(
     () =>
-      countries.filter(
-        (c) =>
-          c.name.common.toLowerCase().includes(query.toLowerCase()) ||
-          c.name.official.toLowerCase().includes(query.toLowerCase())
-      ),
+      countries.filter((c) => {
+        const search = query.toLowerCase().trim();
+
+        return (
+          c.name.common.toLowerCase().includes(search) ||
+          c.name.official.toLowerCase().includes(search) ||
+          getGermanName(c).toLowerCase().includes(search)
+        );
+      }),
     [countries, query]
   );
 
   // Land auswählen
   const pick = (c: Country) => {
     setSelected(c);
-    setQuery(c.name.common);
+    setQuery(getGermanName(c));
 
     globeRef.current?.pointOfView(
       {
@@ -152,7 +208,8 @@ const data: Country[] = rawData.map((c: any) => ({
       countries.map((c) => ({
         lat: c.latlng[0],
         lng: c.latlng[1],
-        name: c.name.common,
+        name: getGermanName(c),
+        cca3: c.cca3,
       })),
     [countries]
   );
@@ -215,7 +272,7 @@ const data: Country[] = rawData.map((c: any) => ({
             }}
             onPointClick={(p: any) => {
               const country = countries.find(
-                (c) => c.name.common === p.name
+                (c) => c.cca3 === p.cca3
               );
 
               if (country) pick(country);
@@ -295,7 +352,7 @@ const data: Country[] = rawData.map((c: any) => ({
                   key={c.cca3}
                   onClick={() => pick(c)}
                 >
-                  {c.name.common}
+                  {getGermanName(c)}
                   <small>{c.region}</small>
                 </button>
               ))}
@@ -312,12 +369,12 @@ const data: Country[] = rawData.map((c: any) => ({
                 {selected.flags?.svg && (
                   <img
                     src={selected.flags.svg}
-                    alt={selected.name.common}
+                    alt={getGermanName(selected)}
                   />
                 )}
 
                 <div>
-                  <h3>{selected.name.common}</h3>
+                  <h3>{getGermanName(selected)}</h3>
                   <small>{selected.name.official}</small>
                 </div>
               </div>
@@ -332,8 +389,8 @@ const data: Country[] = rawData.map((c: any) => ({
               <div className="detail">
                 <label>Bevölkerung</label>
                 <strong>
-  {fmt(selected.population)}
-</strong>
+                  {fmt(selected.population)}
+                </strong>
               </div>
 
               <div className="detail">
@@ -402,6 +459,7 @@ const data: Country[] = rawData.map((c: any) => ({
 
       <footer>
         OUR EARTH <span>·</span> Daten: World Countries Dataset
+        <span>·</span> Bevölkerungsdaten: Weltbank
         <span>·</span> 3D-Globus
       </footer>
     </main>
