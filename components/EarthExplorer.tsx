@@ -15,6 +15,7 @@ type Country = {
     official: string;
   };
   cca3: string;
+  cca2: string;
   capital?: string[];
   population: number | null;
   currencies?: Record<string, { name: string; symbol?: string }>;
