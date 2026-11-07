@@ -363,15 +363,16 @@ export default function EarthExplorer() {
             </div>
           )}
 
-          {selected ? (
-            <div className="country">
-              <div className="countryHead">
-                {selected.flags?.svg && (
-                  <img
-                    src={selected.flags.svg}
-                    alt={getGermanName(selected)}
-                  />
-                )}
+         <img
+  src={`https://flagcdn.com/w160/${selected.cca2.toLowerCase()}.png`}
+  alt={`Flagge ${selected.name.common}`}
+  width={80}
+  height={55}
+  style={{
+    objectFit: "contain",
+    borderRadius: "6px",
+  }}
+/>
 
                 <div>
                   <h3>{getGermanName(selected)}</h3>
